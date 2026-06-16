@@ -98,8 +98,13 @@ impl PwmConfig {
         };
 
         // Point of inflection between high to low
-        let inflection = self.ticks * domain_value / domain_start.max(domain_end);
+        let mut inflection = self.ticks * domain_value / domain_start.max(domain_end);
 
+        if inflection == self.ticks {
+            inflection = self.ticks - 50;
+        }
+
+        info!("inflection: {}", inflection);
         let high_ticks = inflection;
         let low_ticks = self.ticks - high_ticks;
         [
