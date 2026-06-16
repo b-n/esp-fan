@@ -1,11 +1,17 @@
 [package]
 edition      = "2024"
-name         = "esp32-fan"
+name         = "esp-fan"
 rust-version = "1.96"
 version      = "0.1.0"
+description  = "A small esp-hal based project for an esp32c3 to use binary switches to control a PWM signal"
+license      = "MIT"
+repository   = "https://www.github.com/b-n/esp-fan"
+readme       = "README.md"
+keywords     = ["esp-hal"]
+categories   = ["embedded", "no-std"]
 
 [[bin]]
-name = "esp32-fan"
+name = "esp-fan"
 path = "./src/bin/main.rs"
 test = false
 
@@ -58,3 +64,25 @@ codegen-units = 1     # LLVM can perform better optimizations using a single thr
 debug         = 2     # prefer slower builds but better debugging experience
 lto           = 'fat'
 opt-level     = 's'
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+multiple_crate_versions = { "level" = "allow" }
+large_stack_frames = "deny"
+# mem::forget is generally not safe to do with esp_hal types, especially those holding buffers for the duration of a data transfer.
+mem_forget = "deny"
+
+
+[lints.rust]
+unknown_lints = { level = "allow", priority = 1 }
+missing_debug_implementations = "warn"
+rust_2018_idioms = { level = "warn", priority = -1 }
+rust-2021-compatibility = "warn"
+rust-2024-compatibility = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_qualifications = "warn"
+warnings = "warn"
+keyword-idents = "warn"

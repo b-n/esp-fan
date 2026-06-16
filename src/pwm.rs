@@ -12,7 +12,7 @@ use super::SwitchValue;
 
 pub static PWM_CHANNEL: Channel<CriticalSectionRawMutex, SwitchValue, 2> = Channel::new();
 
-#[derive(Clone)]
+#[derive(Debug)]
 pub struct PwmConfig {
     carrier_rate_hz: u32,
     ticks: u16,
@@ -21,6 +21,11 @@ pub struct PwmConfig {
 }
 
 impl PwmConfig {
+    /// # Panics
+    ///
+    /// Will panick if the range is inverted. Values must be ascending for range
+    #[must_use]
+    #[allow(clippy::similar_names)]
     pub fn new(
         carrier_rate_mhz: u32,
         pwm_freq_khz: u32,
@@ -30,11 +35,13 @@ impl PwmConfig {
         let carrier_rate_hz = carrier_rate_mhz * 1_000_000;
 
         let pwm_freq_hz = pwm_freq_khz * 1_000;
+        #[allow(clippy::cast_possible_truncation)]
         let ticks = (carrier_rate_hz / pwm_freq_hz) as u16;
 
-        if range.0 >= range.1 {
-            panic!("Range must be incrementing, recieved {:?}", range);
-        }
+        assert!(
+            range.0 < range.1,
+            "Range must be incrementing, recieved {range:?}"
+        );
 
         info!("Tick size: {}", ticks);
 
@@ -46,6 +53,9 @@ impl PwmConfig {
         }
     }
 
+    /// # Errors
+    ///
+    /// Returns `rmt::ConfigError` if invalid peripheral/carrier rate
     pub fn rmt(
         &self,
         peripherals_rmt: RMT<'static>,
@@ -53,10 +63,12 @@ impl PwmConfig {
         Rmt::new(peripherals_rmt, Rate::from_hz(self.carrier_rate_hz))
     }
 
+    #[must_use]
     pub fn tx_config(&self) -> TxChannelConfig {
         TxChannelConfig::default().with_clk_divider(1)
     }
 
+    #[must_use]
     pub fn to_pulse_code(&self, switches: &SwitchValue) -> [PulseCode; 2] {
         // Clamp the input
         let clamped = (*switches).clamp(self.range.0, self.range.1);

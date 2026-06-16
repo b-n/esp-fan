@@ -611,6 +611,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-fan"
+version = "0.1.0"
+dependencies = [
+ "critical-section",
+ "defmt 1.1.0",
+ "embassy-executor",
+ "embassy-sync 0.8.0",
+ "embassy-time",
+ "embedded-test",
+ "esp-bootloader-esp-idf",
+ "esp-hal",
+ "esp-rtos",
+ "libm",
+ "panic-rtt-target",
+ "rtt-target",
+ "static_cell",
+]
+
+[[package]]
 name = "esp-hal"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -759,25 +778,6 @@ checksum = "5726e07689249d1a2cb7c492077bc424837fb68a64f7eb5d46569325352e9428"
 dependencies = [
  "defmt 1.1.0",
  "vcell",
-]
-
-[[package]]
-name = "esp32-fan"
-version = "0.1.0"
-dependencies = [
- "critical-section",
- "defmt 1.1.0",
- "embassy-executor",
- "embassy-sync 0.8.0",
- "embassy-time",
- "embedded-test",
- "esp-bootloader-esp-idf",
- "esp-hal",
- "esp-rtos",
- "libm",
- "panic-rtt-target",
- "rtt-target",
- "static_cell",
 ]
 
 [[package]]

@@ -17,6 +17,7 @@ pub static SWITCH_CHANGE_CHANNEL: Channel<CriticalSectionRawMutex, SwitchValue, 
 const SAMPLES: usize = 8;
 
 // SwitchesConfig is used to generate the pin and adc
+#[derive(Debug)]
 pub struct SwitchesConfig<PIN, ADCX, CS> {
     pin: PIN,
     adc: ADCX,
@@ -51,7 +52,7 @@ where
 #[embassy_executor::task]
 pub async fn switch_listener_task(
     mut pin: AdcPin<GPIO0<'static>, ADC1<'static>, AdcCalCurve<ADC1<'static>>>,
-    mut adc: Adc<'static, ADC1<'static>, esp_hal::Async>,
+    mut adc: Adc<'static, ADC1<'static>, Async>,
 ) {
     let mut last: SwitchValue = 0;
     let mut buf: [f32; SAMPLES] = [0.0; SAMPLES];
@@ -59,15 +60,17 @@ pub async fn switch_listener_task(
     loop {
         let reading: u16 = adc.read_oneshot(&mut pin).await;
         buf.rotate_right(1);
-        buf[0] = reading as f32;
+        buf[0] = f32::from(reading);
 
         let (mean, stddev) = stats(buf);
 
         if stddev < 20.0 {
+            #[allow(clippy::cast_possible_truncation)]
+            #[allow(clippy::cast_sign_loss)]
             let switches_value: SwitchValue = adc_to_u8(mean as u16);
             if last != switches_value {
                 SWITCH_CHANGE_CHANNEL.send(switches_value).await;
-                last = switches_value
+                last = switches_value;
             }
         }
 
@@ -75,6 +78,7 @@ pub async fn switch_listener_task(
     }
 }
 
+#[must_use]
 pub const fn adc_to_u8(adc_value: u16) -> SwitchValue {
     match adc_value {
         0..160 => 0,
@@ -96,7 +100,9 @@ pub const fn adc_to_u8(adc_value: u16) -> SwitchValue {
     }
 }
 
+#[must_use]
 pub fn stats(values: [f32; SAMPLES]) -> (f32, f32) {
+    #[allow(clippy::cast_precision_loss)]
     let samples = SAMPLES as f32;
     let sum: f32 = values.iter().sum();
     let mean = sum / samples;
