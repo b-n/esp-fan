@@ -5,7 +5,9 @@ use defmt::info;
 use embassy_executor::Spawner;
 use esp_hal::{
     clock::CpuClock,
-    gpio::{OutputSignal, interconnect::PeripheralOutput},
+    gpio::{
+        DriveMode, Level, Output, OutputConfig, OutputSignal, Pull, interconnect::PeripheralOutput,
+    },
     rmt::TxChannelCreator,
     timer::timg::TimerGroup,
 };
@@ -48,7 +50,7 @@ async fn main(spawner: Spawner) -> ! {
     spawner.spawn(switch_listener_task(pin, adc).unwrap());
 
     // Setup PWM outputs
-    let pwm_config = PwmConfig::new(80, 25, (0, 15), (4, 20));
+    let pwm_config = PwmConfig::new(80, 25, (0, 15), (1, 16));
     let rmt_channel = pwm_config
         .rmt(peripherals.RMT)
         .unwrap()
@@ -57,17 +59,16 @@ async fn main(spawner: Spawner) -> ! {
         .unwrap();
 
     // Connect all the GPIOs up to the PWM channel (controlled via RMT)
-    peripherals
-        .GPIO5
+    let out_config = OutputConfig::default()
+        .with_drive_mode(DriveMode::PushPull)
+        .with_pull(Pull::Down);
+    Output::new(peripherals.GPIO9, Level::Low, out_config)
         .connect_peripheral_to_output(OutputSignal::RMT_SIG_0);
-    peripherals
-        .GPIO6
+    Output::new(peripherals.GPIO10, Level::Low, out_config)
         .connect_peripheral_to_output(OutputSignal::RMT_SIG_0);
-    peripherals
-        .GPIO7
+    Output::new(peripherals.GPIO20, Level::Low, out_config)
         .connect_peripheral_to_output(OutputSignal::RMT_SIG_0);
-    peripherals
-        .GPIO8
+    Output::new(peripherals.GPIO21, Level::Low, out_config)
         .connect_peripheral_to_output(OutputSignal::RMT_SIG_0);
 
     // Spawn async tasks
