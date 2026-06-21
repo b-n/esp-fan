@@ -79,6 +79,6 @@ async fn main(spawner: Spawner) -> ! {
     loop {
         let switches_value = SWITCH_CHANGE_CHANNEL.receive().await;
         PWM_CHANNEL.send(switches_value).await;
-        info!("{}", switches_value);
+        info!("Switches value: {}", switches_value);
     }
 }
