@@ -7,50 +7,66 @@ use esp_hal::{
     rmt::{Channel as RmtChannel, ConfigError, LoopMode, PulseCode, Rmt, Tx, TxChannelConfig},
     time::Rate,
 };
+use utils::maths::RangeDomainMapper;
 
 use super::SwitchValue;
 
 pub static PWM_CHANNEL: Channel<CriticalSectionRawMutex, SwitchValue, 2> = Channel::new();
 
+static PWM_BUFFER: u16 = 5;
+
+#[derive(Debug, Eq, PartialEq, defmt::Format)]
+pub enum PwmConfigError {
+    InvalidRange,
+    RequiresNonZeroCarrier,
+    RequiresNonZeroPWM,
+}
+
 #[derive(Debug)]
 pub struct PwmConfig {
     carrier_rate_hz: u32,
-    ticks: u16,
-    range: (u16, u16),
-    domain: (u16, u16),
+    mapper: RangeDomainMapper<u32>,
+    ticks_per_pwm: u16,
 }
 
 impl PwmConfig {
-    /// # Panics
+    /// # Errors
     ///
-    /// Will panick if the range is inverted. Values must be ascending for range
-    #[must_use]
+    /// Returns `PwmConfigError`:
+    /// - `InvalidRange` - when range goes from high to low
     #[allow(clippy::similar_names)]
     pub fn new(
         carrier_rate_mhz: u32,
         pwm_freq_khz: u32,
         range: (u16, u16),
-        domain: (u16, u16),
-    ) -> Self {
+    ) -> Result<Self, PwmConfigError> {
+        if range.0 > range.1 {
+            return Err(PwmConfigError::InvalidRange);
+        }
+        if carrier_rate_mhz == 0 {
+            return Err(PwmConfigError::RequiresNonZeroCarrier);
+        }
+        if pwm_freq_khz == 0 {
+            return Err(PwmConfigError::RequiresNonZeroPWM);
+        }
+
         let carrier_rate_hz = carrier_rate_mhz * 1_000_000;
-
         let pwm_freq_hz = pwm_freq_khz * 1_000;
-        #[allow(clippy::cast_possible_truncation)]
-        let ticks = (carrier_rate_hz / pwm_freq_hz) as u16;
 
-        assert!(
-            range.0 < range.1,
-            "Range must be incrementing, recieved {range:?}"
+        #[allow(clippy::cast_possible_truncation)]
+        let ticks_per_pwm = (carrier_rate_hz / pwm_freq_hz) as u16;
+        info!("Ticks per PWM: {}", ticks_per_pwm);
+
+        let mapper = RangeDomainMapper::new(
+            (u32::from(range.0), u32::from(range.1)),
+            (0, u32::from(ticks_per_pwm)),
         );
 
-        info!("Tick size: {}", ticks);
-
-        Self {
+        Ok(Self {
             carrier_rate_hz,
-            ticks,
-            range,
-            domain,
-        }
+            mapper,
+            ticks_per_pwm,
+        })
     }
 
     /// # Errors
@@ -70,43 +86,18 @@ impl PwmConfig {
 
     #[must_use]
     pub fn to_pulse_code(&self, switches: &SwitchValue) -> [PulseCode; 2] {
-        // Clamp the input
-        let clamped = (*switches).clamp(self.range.0, self.range.1);
-
-        // deref the range/domain
-        let (range_start, range_end) = self.range;
-        let (domain_start, domain_end) = self.domain;
-
-        // Get the span of both range and domain
-        let range_span = range_start.abs_diff(range_end);
-        let domain_span = domain_start.abs_diff(domain_end);
-        // And whether the domain is inverted
-        let inverse_domain = domain_start > domain_end;
-
-        // how far is the value from the range minimum
-        let value_offset = clamped - range_start;
-
-        // do the math. Takes value_offset/range_span (e.g. position in range), and multiples by
-        // domain_span for position in the domain. Is the offset by the domain_start to get the
-        // true value in the domain. Math is done here to preserve integers etc.
-        let domain_value = if inverse_domain {
-            let offset = value_offset * domain_span / range_span;
-            domain_start - offset
-        } else {
-            let offset = value_offset * domain_span / range_span;
-            domain_start + offset
-        };
-
-        // Point of inflection between high to low
-        let mut inflection = self.ticks * domain_value / domain_start.max(domain_end);
-
-        if inflection == self.ticks {
-            inflection = self.ticks - 50;
-        }
-
+        // Explanation of PWM_BUFFER: Who knows why, but if the inflection = 0 || ticks_per_pwm,
+        // then the pulse code ends up being the opposite of what you'd think it should be. This
+        // happens even if the inflection is at 1/ticks_per_pwm - 1.
+        #[allow(clippy::cast_possible_truncation)]
+        let inflection = (self.mapper.value(&u32::from(*switches)) as u16)
+            .clamp(PWM_BUFFER, self.ticks_per_pwm - PWM_BUFFER);
         info!("inflection: {}", inflection);
-        let high_ticks = inflection;
-        let low_ticks = self.ticks - high_ticks;
+
+        // If inflection == 0, for some reason PulseCode is always set to high
+        let high_ticks: u16 = inflection;
+        let low_ticks = self.ticks_per_pwm - high_ticks;
+        info!("high ticks: {}, low ticks: {}", high_ticks, low_ticks);
         [
             PulseCode::new(Level::High, high_ticks, Level::Low, low_ticks),
             PulseCode::end_marker(),

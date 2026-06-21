@@ -5,7 +5,8 @@ rust-version = "1.96"
 version      = "0.1.0"
 description  = "A small esp-hal based project for an esp32c3 to use binary switches to control a PWM signal"
 license      = "MIT"
-repository   = "https://www.github.com/b-n/esp-fan"
+homepage     = "https://github.com/b-n/esp-fan"
+repository   = "https://github.com/b-n/esp-fan"
 readme       = "README.md"
 keywords     = ["esp-hal"]
 categories   = ["embedded", "no-std"]
@@ -17,7 +18,7 @@ test = false
 
 [[test]]
 harness = false
-name    = "hello_test"
+name    = "pwm_test"
 
 [lib]
 test = false
@@ -43,8 +44,7 @@ rtt-target       = { version = "0.6.2", features = ["defmt"] }
 critical-section = "1.2.0"
 static_cell      = "2.1.1"
 
-# math functions, specifically sqrt
-libm = "0.2.16"
+utils = { path = "utils" }
 
 [dev-dependencies]
 embedded-test = { version = "0.7.1", features = [

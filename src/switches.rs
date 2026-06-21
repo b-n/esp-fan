@@ -12,6 +12,7 @@ use esp_hal::{
 };
 
 use super::SwitchValue;
+use utils::maths::mean_and_stddev;
 
 pub static SWITCH_CHANGE_CHANNEL: Channel<CriticalSectionRawMutex, SwitchValue, 2> = Channel::new();
 const SAMPLES: usize = 8;
@@ -62,7 +63,7 @@ pub async fn switch_listener_task(
         buf.rotate_right(1);
         buf[0] = f32::from(reading);
 
-        let (mean, stddev) = stats(buf);
+        let (mean, stddev) = mean_and_stddev(&buf);
 
         if stddev < 20.0 {
             #[allow(clippy::cast_possible_truncation)]
@@ -98,17 +99,4 @@ pub const fn adc_to_u8(adc_value: u16) -> SwitchValue {
         2057..2107 => 14,
         _ => 15,
     }
-}
-
-#[must_use]
-pub fn stats(values: [f32; SAMPLES]) -> (f32, f32) {
-    #[allow(clippy::cast_precision_loss)]
-    let samples = SAMPLES as f32;
-    let sum: f32 = values.iter().sum();
-    let mean = sum / samples;
-    let diffs: f32 = values
-        .iter()
-        .fold(0.0, |acc, v| acc + (v - mean) * (v - mean));
-
-    (mean, libm::sqrtf(diffs / samples))
 }

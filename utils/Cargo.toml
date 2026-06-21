@@ -1,0 +1,12 @@
+[package]
+edition      = "2024"
+name = "utils"
+version = "0.1.0"
+rust-version = "1.96"
+license      = "MIT"
+homepage     = "https://github.com/b-n/esp-fan"
+repository   = "https://github.com/b-n/esp-fan"
+
+[dependencies]
+# math functions, specifically sqrt
+libm = { version= "0.2.16", features = ["unstable-public-internals" ] }
