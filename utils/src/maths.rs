@@ -63,7 +63,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::maths::mean_and_stddev;
+    use super::{RangeDomainMapper, mean_and_stddev};
     use libm::sqrtf;
 
     #[test]
@@ -71,5 +71,34 @@ mod tests {
         assert_eq!(mean_and_stddev(&[0.0, 4.0]), (2.0, 2.0));
         assert_eq!(mean_and_stddev(&[0.0, 2.0]), (1.0, 1.0));
         assert_eq!(mean_and_stddev(&[0.0, 2.0, 2.0, 4.0]), (2.0, sqrtf(2.0)));
+    }
+
+    #[test]
+    fn range_domain_mapper_new() {
+        let _ = RangeDomainMapper::new((0u32, 1), (0, 1));
+    }
+
+    #[test]
+    fn range_domain_mapper_value() {
+        let basic = RangeDomainMapper::new((0u32, 1), (0, 1));
+        assert_eq!(basic.value(&0), 0);
+        assert_eq!(basic.value(&1), 1);
+        assert_eq!(basic.value(&2), 1);
+
+        let rounded_less = RangeDomainMapper::new((0u32, 4), (0, 2));
+        assert_eq!(rounded_less.value(&0), 0);
+        assert_eq!(rounded_less.value(&1), 0);
+        assert_eq!(rounded_less.value(&2), 1);
+        assert_eq!(rounded_less.value(&3), 1);
+        assert_eq!(rounded_less.value(&4), 2);
+
+        let rounded_more = RangeDomainMapper::new((0u32, 2), (0, 4));
+        assert_eq!(rounded_more.value(&0), 0);
+        assert_eq!(rounded_more.value(&1), 2);
+        assert_eq!(rounded_more.value(&2), 4);
+
+        let inverted = RangeDomainMapper::new((0u32, 1), (1, 0));
+        assert_eq!(inverted.value(&0), 1);
+        assert_eq!(inverted.value(&1), 0);
     }
 }
