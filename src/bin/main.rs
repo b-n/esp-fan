@@ -96,7 +96,7 @@ async fn main(spawner: Spawner) -> ! {
     // Configure IP
     stack.wait_config_up().await;
     if let Some(config) = stack.config_v4() {
-        info!("Got IP: {}", config.address);
+        info!("[WiFi] Got IP: {}", config.address);
     }
     // Start http server
     spawner.spawn(run_http_server(stack).unwrap());

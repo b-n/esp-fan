@@ -45,6 +45,6 @@ pub async fn run_http_server(stack: Stack<'static>) {
     let mut server = DefaultHttpServer::new(80); // Listen on port 80
     let handler = PromHandler;
 
-    info!("Serving http");
+    info!("[HTTP] Serving http");
     pin!(server.serve(stack, handler)).await;
 }

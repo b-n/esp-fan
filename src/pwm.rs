@@ -55,7 +55,7 @@ impl PwmConfig {
 
         #[allow(clippy::cast_possible_truncation)]
         let ticks_per_pwm = (carrier_rate_hz / pwm_freq_hz) as u16;
-        info!("Ticks per PWM: {}", ticks_per_pwm);
+        info!("[PWM] Ticks per PWM: {}", ticks_per_pwm);
 
         let mapper = RangeDomainMapper::new(
             (u32::from(range.0), u32::from(range.1)),
@@ -92,12 +92,11 @@ impl PwmConfig {
         #[allow(clippy::cast_possible_truncation)]
         let inflection = (self.mapper.value(&u32::from(*switches)) as u16)
             .clamp(PWM_BUFFER, self.ticks_per_pwm - PWM_BUFFER);
-        info!("inflection: {}", inflection);
 
         // If inflection == 0, for some reason PulseCode is always set to high
         let high_ticks: u16 = inflection;
         let low_ticks = self.ticks_per_pwm - high_ticks;
-        info!("high ticks: {}, low ticks: {}", high_ticks, low_ticks);
+        info!("[PWM] high ticks: {}, low ticks: {}", high_ticks, low_ticks);
         [
             PulseCode::new(Level::High, high_ticks, Level::Low, low_ticks),
             PulseCode::end_marker(),
