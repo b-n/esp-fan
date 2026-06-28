@@ -13,7 +13,7 @@ use esp_hal::{
 };
 use esp_radio::wifi::{
     Config as WifiConfig, ControllerConfig as WifiControllerConfig, Interface as WifiInterface,
-    WifiController, scan::ScanConfig, sta::StationConfig,
+    WifiController, sta::StationConfig,
 };
 use panic_rtt_target as _;
 use static_cell::StaticCell;
@@ -63,7 +63,7 @@ async fn main(spawner: Spawner) -> ! {
     // Controller
     info!("[WiFi] Starting controller");
     let wifi_interface = WifiInterface::station();
-    let mut wifi_controller = WifiController::new(
+    let wifi_controller = WifiController::new(
         peripherals.WIFI,
         WifiControllerConfig::default().with_initial_config(station_config),
     )
@@ -78,26 +78,11 @@ async fn main(spawner: Spawner) -> ! {
     let seed = u64::from(rng.random()) << 32 | u64::from(rng.random());
     let stack_resources = EMBASSY_STACK.init(StackResources::<3>::new());
     let (stack, runner) = embassy_net::new(wifi_interface, net_config, stack_resources, seed);
-    // Scan
-    let scan_config = ScanConfig::default().with_max(10);
-    let result = wifi_controller.scan_async(&scan_config).await.unwrap();
-    for ap in result {
-        info!(
-            "[WiFi] AP: {}. Ch: {}, Str {}, Auth: {}",
-            ap.ssid.as_str(),
-            ap.channel,
-            ap.signal_strength,
-            ap.auth_method
-        );
-    }
     // Pass the wifi controller and net handling to background tasks
-    spawner.spawn(connection(wifi_controller).unwrap());
     spawner.spawn(net_task(runner).unwrap());
-    // Configure IP
-    stack.wait_config_up().await;
-    if let Some(config) = stack.config_v4() {
-        info!("[WiFi] Got IP: {}", config.address);
-    }
+    spawner.spawn(connection(wifi_controller, stack).unwrap());
+
+    //// HTTP Server
     // Start http server
     spawner.spawn(run_http_server(stack).unwrap());
 
