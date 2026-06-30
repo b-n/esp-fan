@@ -19,7 +19,7 @@ use panic_rtt_target as _;
 use static_cell::StaticCell;
 
 use esp_fan::{
-    http::run_http_server,
+    http::{HttpServer, run_http_server},
     pwm::{PWM_CHANNEL, PwmConfig, pwm_task},
     switches::{SWITCH_CHANGE_CHANNEL, SwitchesConfig, switch_listener_task},
     wifi::{connection, net_task},
@@ -84,7 +84,8 @@ async fn main(spawner: Spawner) -> ! {
 
     //// HTTP Server
     // Start http server
-    spawner.spawn(run_http_server(stack).unwrap());
+    let http_server = HttpServer::default();
+    spawner.spawn(run_http_server(stack, http_server).unwrap());
 
     //// Switch ADC Setup
     // Setup Switch ADC listener

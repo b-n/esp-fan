@@ -10,3 +10,4 @@ rust-version = "1.96"
 [dependencies]
 # math functions, specifically sqrt
 libm = { version = "0.2.16", features = ["unstable-public-internals"] }
+portable-atomic = { version = "1.13.1", features = ["float"] }
