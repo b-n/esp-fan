@@ -43,12 +43,16 @@ impl Metric for Gauge {
 // IntGauge
 #[derive(Default, Debug)]
 pub struct IntGauge {
+    name: &'static str,
+    labels: &'static str,
     val: AtomicUsize,
 }
 
 impl IntGauge {
-    pub const fn new() -> Self {
+    pub const fn new(name: &'static str, labels: &'static str) -> Self {
         Self {
+            name,
+            labels,
             val: AtomicUsize::new(0),
         }
     }
@@ -64,7 +68,9 @@ impl IntGauge {
 
 impl Metric for IntGauge {
     fn write<F: fmt::Write>(&self, writer: &mut F) -> fmt::Result {
-        write!(writer, "{}", self.value())
+        write!(writer, "{} {{", self.name)?;
+        write!(writer, "{}", self.labels)?;
+        writeln!(writer, "}} {}", self.value())
     }
 }
 

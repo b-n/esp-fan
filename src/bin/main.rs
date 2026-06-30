@@ -125,6 +125,9 @@ async fn main(spawner: Spawner) -> ! {
     // - Route switches events to the PWM output
     loop {
         let switches_value = SWITCH_CHANGE_CHANNEL.receive().await;
+        esp_fan::prom::METRICS
+            .switch_value
+            .set(switches_value.into());
         PWM_CHANNEL.send(switches_value).await;
         info!("Switches value: {}", switches_value);
     }

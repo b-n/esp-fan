@@ -1,5 +1,5 @@
 use core::fmt;
-use utils::prom::{Counter, Metric};
+use utils::prom::{Counter, IntGauge, Metric};
 
 pub static METRICS: Metrics = Metrics::new();
 
@@ -7,6 +7,7 @@ pub static METRICS: Metrics = Metrics::new();
 pub struct Metrics {
     pub http_get_requests: Counter,
     pub http_post_requests: Counter,
+    pub switch_value: IntGauge,
 }
 
 impl Default for Metrics {
@@ -21,11 +22,16 @@ impl Metrics {
         Self {
             http_get_requests: Counter::new("http_request_count", "method=\"GET\""),
             http_post_requests: Counter::new("http_request_count", "method=\"POST\""),
+            switch_value: IntGauge::new("switch_value", "device=fan"),
         }
     }
 
+    /// # Errors
+    ///
+    /// Will error if the buffer can't handle the string size
     pub fn write_http_body<T: fmt::Write>(&self, writer: &mut T) -> fmt::Result {
         self.http_get_requests.write(writer)?;
-        self.http_post_requests.write(writer)
+        self.http_post_requests.write(writer)?;
+        self.switch_value.write(writer)
     }
 }
