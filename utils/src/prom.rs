@@ -6,19 +6,33 @@ pub trait Metric {
     fn write<F: fmt::Write>(&self, writer: &mut F) -> fmt::Result;
 }
 
+pub struct GaugeFamily<'a, const METRICS: usize, M = Gauge> {
+    name: &'a str,
+    help: &'a str,
+    unit: &'a str,
+    metrics: [M; METRICS],
+}
+
+impl<'a, const METRICS: usize> GaugeFamily<'a, METRICS> {
+    pub fn new(&'a name, &'a help, &'a unit) -> Self {
+        Self {
+            name,
+            help,
+            unit,
+            metrics: [Gauge::new(); METRICS],
+        }
+    }
+}
+
 // [f64]Gauge
 #[derive(Debug, Default)]
 pub struct Gauge {
-    name: &'static str,
-    labels: &'static str,
     val: AtomicF64,
 }
 
 impl Gauge {
-    pub const fn new(name: &'static str, labels: &'static str) -> Self {
+    pub const fn new() -> Self {
         Self {
-            name,
-            labels,
             val: AtomicF64::new(0.0),
         }
     }
